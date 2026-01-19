@@ -61,6 +61,10 @@ For advanced usage (custom Dockerfile generation, parsing tool versions), see th
 - **Test**: `bun test`
 - **Test (Watch Mode)**: `bun run test:watch`
 
+## Credits
+
+This project is a TypeScript fork of [agent-en-place](https://github.com/mheap/agent-en-place) by [@mheap](https://github.com/mheap).
+
 ## License
 
 MIT – see [LICENSE](./LICENSE).
