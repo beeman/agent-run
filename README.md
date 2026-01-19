@@ -1,73 +1,69 @@
 # agent-run
 
-This is a template for creating a modern TypeScript library or package using [Bun](https://bun.sh/). It comes pre-configured with essential tools for development, testing, linting, and publishing.
+Run AI coding agents (Codex, OpenCode, Copilot, Gemini) in Docker containers with your project mounted.
+
+## CLI Usage
+
+```bash
+# Install globally
+bun install -g agent-run
+
+# Or run directly
+bunx agent-run <tool>
+
+# Available tools: codex, opencode, copilot, gemini
+
+# Options:
+#   --debug       Show Docker build output
+#   --rebuild     Force rebuild the Docker image
+#   --dockerfile  Print Dockerfile and exit
+#   --version     Show version
+#   --help        Show help
+```
+
+## Library Usage
+
+```typescript
+import { run, toolSpecs } from 'agent-run'
+
+// Run the agent (builds image and prints docker run command)
+await run({
+  tool: 'codex',
+  debug: false,
+  rebuild: false,
+  dockerfileOnly: false,
+})
+
+// Print Dockerfile only (no image build)
+await run({
+  tool: 'gemini',
+  debug: false,
+  rebuild: false,
+  dockerfileOnly: true,
+})
+```
+
+For advanced usage (custom Dockerfile generation, parsing tool versions), see the exported functions: `collectToolSpecs`, `buildDockerfile`, `buildImageName`, `parseToolVersions`, `parseMiseToml`.
 
 ## Features
 
-*   **Bun-first development**: Leverages Bun for lightning-fast installs, runs, and tests.
-*   **TypeScript support**: Write type-safe code from the start.
-*   **Linting & Formatting**: Enforced with [Biome](https://biomejs.dev/) for consistent code style.
-*   **Bundling**: Uses [tsup](https://tsup.js.org/) for efficient bundling into ESM and CJS formats, with type declarations.
-*   **Testing**: Built-in unit testing with `bun test`.
-*   **Versioning & Publishing**: Managed with [Changesets](https://github.com/changesets/changesets) for streamlined releases to npm.
-*   **GitHub Actions**: Continuous Integration (CI) workflows for automated build, test, lint, and publish processes.
+- **Docker-based isolation**: Run AI agents in isolated containers
+- **Multiple AI tools**: Support for Codex, OpenCode, Copilot, and Gemini
+- **Project mounting**: Automatically mounts your project directory
+- **Configurable**: Debug mode, rebuild options, and Dockerfile generation
 
-## Getting Started
+## Development
 
-To use this template, you typically would use a scaffolding tool like `bunx create-something -t agent-run`.
+- **Build**: `bun run build`
+- **Type Check**: `bun run check-types`
+- **Lint**: `bun run lint`
+- **Lint & Fix**: `bun run lint:fix`
+- **Test**: `bun test`
+- **Test (Watch Mode)**: `bun run test:watch`
 
-### Installation
+## Credits
 
-If you're using this template directly (e.g., after cloning), you can install dependencies with Bun:
-
-```bash
-bun install
-```
-
-### Development
-
-*   **Build**: `bun run build`
-*   **Type Check**: `bun run check-types`
-*   **Lint**: `bun run lint`
-*   **Lint & Fix**: `bun run lint:fix`
-*   **Test**: `bun test`
-*   **Test (Watch Mode)**: `bun run test:watch`
-
-### Publishing
-
-This template uses Changesets for versioning and publishing.
-
-1.  **Add a changeset**:
-    ```bash
-    bun changeset
-    ```
-    Follow the prompts to describe your changes. This will create a markdown file in `.changeset/`.
-
-2.  **Version packages**:
-    ```bash
-    bun run version
-    ```
-    This command reads the changeset files, updates package versions, updates `CHANGELOG.md`, and deletes the used changeset files. It also runs `bun lint:fix`.
-
-3.  **Publish to npm**:
-    ```bash
-    bun run release
-    ```
-    This command builds the package and publishes it to npm. Ensure you are logged into npm (`npm login`) or have `NPM_TOKEN` configured in your CI environment.
-
-## Project Structure
-
-```
-.
-├── src/             # Source code for your library
-│   └── index.ts     # Main entry point for your library
-├── test/            # Unit tests
-│   └── index.test.ts # Example test file
-├── tsup.config.ts   # Configuration for tsup (bundling)
-├── biome.json       # Biome linter/formatter configuration
-├── package.json     # Project metadata and scripts
-└── ... (other config files and GitHub workflows)
-```
+This project is a TypeScript fork of [agent-en-place](https://github.com/mheap/agent-en-place) by [@mheap](https://github.com/mheap).
 
 ## License
 
