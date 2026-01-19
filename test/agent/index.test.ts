@@ -14,7 +14,7 @@ if (!opencodeSpec) throw new Error('opencode spec not defined')
 
 describe('generateDockerRunCommand', () => {
   test('generates valid docker run command', () => {
-    const imageName = 'mheap/agent-en-place:test'
+    const imageName = 'beeman/agent-run:test'
     const cwd = '/test/workdir'
     const home = '/home/user'
 
@@ -28,7 +28,7 @@ describe('generateDockerRunCommand', () => {
   })
 
   test('includes environment variables', () => {
-    const imageName = 'mheap/agent-en-place:test'
+    const imageName = 'beeman/agent-run:test'
     const cwd = '/test/workdir'
     const home = '/home/user'
 
@@ -38,7 +38,7 @@ describe('generateDockerRunCommand', () => {
   })
 
   test('includes additional mounts', () => {
-    const imageName = 'mheap/agent-en-place:test'
+    const imageName = 'beeman/agent-run:test'
     const cwd = '/test/workdir'
     const home = '/home/user'
 

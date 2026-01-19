@@ -10,7 +10,7 @@ if (!codexSpec) throw new Error('codex spec not defined')
 describe('buildImageName', () => {
   test('returns latest for empty specs', () => {
     const result = buildImageName([])
-    expect(result).toBe('mheap/agent-en-place:latest')
+    expect(result).toBe('beeman/agent-run:latest')
   })
 
   test('builds name from tool specs', () => {
@@ -19,7 +19,7 @@ describe('buildImageName', () => {
       { name: 'python', version: '3.12.0' },
     ]
     const result = buildImageName(specs)
-    expect(result).toBe('mheap/agent-en-place:node-20.11.0-python-3.12.0')
+    expect(result).toBe('beeman/agent-run:node-20.11.0-python-3.12.0')
   })
 })
 
@@ -27,7 +27,7 @@ describe('buildToolLabels', () => {
   test('generates labels for specs', () => {
     const specs: ToolDescriptor[] = [{ name: 'node', version: '20.11.0' }]
     const result = buildToolLabels(specs)
-    expect(result).toContain('LABEL com.mheap.agent-en-place.node="20.11.0"')
+    expect(result).toContain('LABEL com.beeman.agent-run.node="20.11.0"')
   })
 })
 

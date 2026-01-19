@@ -55,7 +55,7 @@ export function buildToolLabels(specs: ToolDescriptor[]): string {
       continue
     }
     const version = sanitizeForTag(spec.version) || 'latest'
-    const key = `com.mheap.agent-en-place.${name}`
+    const key = `com.beeman.agent-run.${name}`
     result += `LABEL ${key}="${version}"\n`
   }
 

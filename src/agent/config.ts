@@ -33,4 +33,4 @@ export const toolSpecs: Record<string, ToolSpec> = {
 }
 
 // Mirrors Go: const imageRepository
-export const imageRepository = 'mheap/agent-en-place'
+export const imageRepository = 'beeman/agent-run'
