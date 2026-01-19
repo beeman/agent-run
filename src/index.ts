@@ -1,21 +1,28 @@
 // Main exports
-export { run, generateDockerRunCommand } from './agent'
-export { toolSpecs, imageRepository } from './agent/config'
-export type { Config, ToolSpec, ValidTool, FileSpec, ToolDescriptor, CollectResult, IdiomaticInfo } from './agent/types'
-export { validTools, isValidTool } from './agent/types'
+
+export { imageRepository, toolSpecs } from './agent/config.ts'
+// Docker operations exports
+export { buildDockerContext, buildImage, imageExists } from './agent/docker.ts'
+// Dockerfile generation exports
+export { buildDockerfile, buildImageName, buildToolLabels } from './agent/dockerfile.ts'
+export { generateDockerRunCommand, run } from './agent/index.ts'
 
 // Parser exports for advanced usage
 export {
-  optionalFileSpec,
-  parseToolVersions,
-  parseMiseToml,
-  parseIdiomaticFiles,
   collectToolSpecs,
   idiomaticToolFiles,
-} from './agent/parsers'
-
-// Dockerfile generation exports
-export { buildDockerfile, buildImageName, buildToolLabels } from './agent/dockerfile'
-
-// Docker operations exports
-export { imageExists, buildDockerContext, buildImage } from './agent/docker'
+  optionalFileSpec,
+  parseIdiomaticFiles,
+  parseMiseToml,
+  parseToolVersions,
+} from './agent/parsers.ts'
+export type {
+  CollectResult,
+  Config,
+  FileSpec,
+  IdiomaticInfo,
+  ToolDescriptor,
+  ToolSpec,
+  ValidTool,
+} from './agent/types.ts'
+export { isValidTool, validTools } from './agent/types.ts'

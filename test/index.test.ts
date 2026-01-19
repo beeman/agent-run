@@ -1,27 +1,27 @@
 import { expect, test } from 'bun:test'
 import {
-  // Main exports
-  run,
+  buildDockerContext,
+  // Dockerfile generation exports
+  buildDockerfile,
+  buildImage,
+  buildImageName,
+  buildToolLabels,
+  collectToolSpecs,
   generateDockerRunCommand,
-  toolSpecs,
+  idiomaticToolFiles,
+  // Docker operations exports
+  imageExists,
   imageRepository,
-  validTools,
   isValidTool,
   // Parser exports
   optionalFileSpec,
-  parseToolVersions,
-  parseMiseToml,
   parseIdiomaticFiles,
-  collectToolSpecs,
-  idiomaticToolFiles,
-  // Dockerfile generation exports
-  buildDockerfile,
-  buildImageName,
-  buildToolLabels,
-  // Docker operations exports
-  imageExists,
-  buildDockerContext,
-  buildImage,
+  parseMiseToml,
+  parseToolVersions,
+  // Main exports
+  run,
+  toolSpecs,
+  validTools,
 } from '../src/index.ts'
 
 test('main exports are available', () => {

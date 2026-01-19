@@ -1,11 +1,10 @@
-import { join } from 'node:path'
 import { homedir } from 'node:os'
-
-import type { Config, ToolSpec, CollectResult } from './types'
-import { toolSpecs } from './config'
-import { optionalFileSpec, collectToolSpecs, collectionHasNode } from './parsers'
-import { buildDockerfile, buildImageName } from './dockerfile'
-import { imageExists, buildDockerContext, buildImage } from './docker'
+import { join } from 'node:path'
+import { toolSpecs } from './config.ts'
+import { buildDockerContext, buildImage, imageExists } from './docker.ts'
+import { buildDockerfile, buildImageName } from './dockerfile.ts'
+import { collectionHasNode, collectToolSpecs, optionalFileSpec } from './parsers.ts'
+import type { Config, ToolSpec } from './types.ts'
 
 // Embedded entrypoint script (mirrors Go's //go:embed)
 const agentEntrypointScript = new TextEncoder().encode(`#!/bin/bash
@@ -48,7 +47,7 @@ export async function run(cfg: Config): Promise<void> {
       toolFile,
       miseFile,
       collection.idiomaticPaths,
-      agentEntrypointScript
+      agentEntrypointScript,
     )
 
     await buildImage(context, imageName, cfg.debug)
@@ -62,12 +61,7 @@ export async function run(cfg: Config): Promise<void> {
 }
 
 // Generate docker run command
-export function generateDockerRunCommand(
-  imageName: string,
-  spec: ToolSpec,
-  cwd: string,
-  home: string
-): string {
+export function generateDockerRunCommand(imageName: string, spec: ToolSpec, cwd: string, home: string): string {
   const configMount = join(home, spec.configDir)
   const containerConfigPath = join('/home/agent', spec.configDir)
 

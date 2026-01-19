@@ -1,24 +1,28 @@
-import { expect, test, describe, beforeAll, afterAll } from 'bun:test'
-import {
-  optionalFileSpec,
-  parseToolVersions,
-  parseMiseToml,
-  readFirstLine,
-  parseGemfileVersion,
-  parseSdkmanVersion,
-  parseIdiomaticFiles,
-  idiomaticToolFiles,
-  dedupeToolSpecs,
-  ensureDefaultTool,
-  ensureNodeTool,
-  uniquePaths,
-  sanitizeTagComponent,
-} from '../../src/agent/parsers'
-import { toolSpecs } from '../../src/agent/config'
-import type { FileSpec, ToolDescriptor, IdiomaticInfo } from '../../src/agent/types'
+import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { toolSpecs } from '../../src/agent/config.ts'
+import {
+  dedupeToolSpecs,
+  ensureDefaultTool,
+  ensureNodeTool,
+  idiomaticToolFiles,
+  optionalFileSpec,
+  parseGemfileVersion,
+  parseIdiomaticFiles,
+  parseMiseToml,
+  parseSdkmanVersion,
+  parseToolVersions,
+  readFirstLine,
+  sanitizeTagComponent,
+  uniquePaths,
+} from '../../src/agent/parsers.ts'
+import type { FileSpec, IdiomaticInfo, ToolDescriptor } from '../../src/agent/types.ts'
+
+// Get codex spec with type guard
+const codexSpec = toolSpecs.codex
+if (!codexSpec) throw new Error('codex spec not defined')
 
 describe('optionalFileSpec', () => {
   let tempDir: string
@@ -42,9 +46,9 @@ describe('optionalFileSpec', () => {
 
     const result = await optionalFileSpec(filePath)
     expect(result).not.toBeNull()
-    expect(result!.path).toBe(filePath)
-    expect(new TextDecoder().decode(result!.data)).toBe('hello world')
-    expect(result!.mode).toBe(0o644)
+    expect(result?.path).toBe(filePath)
+    expect(new TextDecoder().decode(result?.data)).toBe('hello world')
+    expect(result?.mode).toBe(0o644)
   })
 })
 
@@ -56,9 +60,9 @@ describe('parseToolVersions', () => {
 
   test('parses .tool-versions format', () => {
     const fileSpec: FileSpec = {
-      path: '.tool-versions',
       data: new TextEncoder().encode('node 20.11.0\npython 3.12.0\n# comment\nruby 3.3.0'),
       mode: 0o644,
+      path: '.tool-versions',
     }
     const result = parseToolVersions(fileSpec)
     expect(result).toEqual([
@@ -70,9 +74,9 @@ describe('parseToolVersions', () => {
 
   test('defaults to latest when no version specified', () => {
     const fileSpec: FileSpec = {
-      path: '.tool-versions',
       data: new TextEncoder().encode('node'),
       mode: 0o644,
+      path: '.tool-versions',
     }
     const result = parseToolVersions(fileSpec)
     expect(result).toEqual([{ name: 'node', version: 'latest' }])
@@ -92,9 +96,9 @@ node = "20.11.0"
 python = "3.12.0"
 `
     const fileSpec: FileSpec = {
-      path: 'mise.toml',
       data: new TextEncoder().encode(content),
       mode: 0o644,
+      path: 'mise.toml',
     }
     const result = parseMiseToml(fileSpec)
     expect(result).toContainEqual({ name: 'node', version: '20.11.0' })
@@ -112,9 +116,9 @@ name = "python"
 version = "3.12.0"
 `
     const fileSpec: FileSpec = {
-      path: 'mise.toml',
       data: new TextEncoder().encode(content),
       mode: 0o644,
+      path: 'mise.toml',
     }
     const result = parseMiseToml(fileSpec)
     expect(result).toContainEqual({ name: 'node', version: '20.11.0' })
@@ -264,15 +268,15 @@ describe('parseIdiomaticFiles', () => {
 
     const nodeInfo = result.find((info) => info.tool === 'node')
     expect(nodeInfo).toBeDefined()
-    expect(nodeInfo!.version).toBe('20.11.0')
-    expect(nodeInfo!.path).toBe('.nvmrc')
-    expect(nodeInfo!.configKey).toBe('node')
+    expect(nodeInfo?.version).toBe('20.11.0')
+    expect(nodeInfo?.path).toBe('.nvmrc')
+    expect(nodeInfo?.configKey).toBe('node')
 
     const pythonInfo = result.find((info) => info.tool === 'python')
     expect(pythonInfo).toBeDefined()
-    expect(pythonInfo!.version).toBe('3.12.0')
-    expect(pythonInfo!.path).toBe('.python-version')
-    expect(pythonInfo!.configKey).toBe('python')
+    expect(pythonInfo?.version).toBe('3.12.0')
+    expect(pythonInfo?.path).toBe('.python-version')
+    expect(pythonInfo?.configKey).toBe('python')
   })
 
   test('returns empty array when no idiomatic files exist', async () => {
@@ -313,13 +317,13 @@ describe('dedupeToolSpecs', () => {
 describe('ensureDefaultTool', () => {
   test('adds tool if not present', () => {
     const specs: ToolDescriptor[] = [{ name: 'node', version: '20.0.0' }]
-    const result = ensureDefaultTool(specs, toolSpecs.codex)
+    const result = ensureDefaultTool(specs, codexSpec)
     expect(result.some((s) => s.name === 'npm:@openai/codex')).toBe(true)
   })
 
   test('does not duplicate existing tool', () => {
     const specs: ToolDescriptor[] = [{ name: 'npm:@openai/codex', version: '1.0.0' }]
-    const result = ensureDefaultTool(specs, toolSpecs.codex)
+    const result = ensureDefaultTool(specs, codexSpec)
     expect(result.filter((s) => s.name === 'npm:@openai/codex').length).toBe(1)
   })
 })
@@ -353,9 +357,9 @@ describe('sanitizeTagComponent', () => {
 describe('uniquePaths', () => {
   test('returns unique paths only', () => {
     const infos: IdiomaticInfo[] = [
-      { tool: 'node', version: '20', path: '.nvmrc', configKey: 'node' },
-      { tool: 'node', version: '18', path: '.nvmrc', configKey: 'node' },
-      { tool: 'python', version: '3.12', path: '.python-version', configKey: 'python' },
+      { configKey: 'node', path: '.nvmrc', tool: 'node', version: '20' },
+      { configKey: 'node', path: '.nvmrc', tool: 'node', version: '18' },
+      { configKey: 'python', path: '.python-version', tool: 'python', version: '3.12' },
     ]
     const result = uniquePaths(infos)
     expect(result).toEqual(['.nvmrc', '.python-version'])
@@ -363,8 +367,8 @@ describe('uniquePaths', () => {
 
   test('filters out empty paths', () => {
     const infos: IdiomaticInfo[] = [
-      { tool: 'node', version: '20', path: '', configKey: 'node' },
-      { tool: 'python', version: '3.12', path: '.python-version', configKey: 'python' },
+      { configKey: 'node', path: '', tool: 'node', version: '20' },
+      { configKey: 'python', path: '.python-version', tool: 'python', version: '3.12' },
     ]
     const result = uniquePaths(infos)
     expect(result).toEqual(['.python-version'])

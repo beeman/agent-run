@@ -1,5 +1,5 @@
-import { expect, test, describe } from 'bun:test'
-import { imageExists, buildDockerContext } from '../../src/agent/docker'
+import { describe, expect, test } from 'bun:test'
+import { buildDockerContext, imageExists } from '../../src/agent/docker.ts'
 
 describe('buildDockerContext', () => {
   test('creates tar with Dockerfile', async () => {

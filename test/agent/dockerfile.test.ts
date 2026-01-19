@@ -1,7 +1,11 @@
-import { expect, test, describe } from 'bun:test'
-import { buildDockerfile, buildImageName, buildToolLabels } from '../../src/agent/dockerfile'
-import { toolSpecs } from '../../src/agent/config'
-import type { CollectResult, ToolDescriptor } from '../../src/agent/types'
+import { describe, expect, test } from 'bun:test'
+import { toolSpecs } from '../../src/agent/config.ts'
+import { buildDockerfile, buildImageName, buildToolLabels } from '../../src/agent/dockerfile.ts'
+import type { CollectResult, ToolDescriptor } from '../../src/agent/types.ts'
+
+// Get codex spec once with type guard
+const codexSpec = toolSpecs.codex
+if (!codexSpec) throw new Error('codex spec not defined')
 
 describe('buildImageName', () => {
   test('returns latest for empty specs', () => {
@@ -21,9 +25,7 @@ describe('buildImageName', () => {
 
 describe('buildToolLabels', () => {
   test('generates labels for specs', () => {
-    const specs: ToolDescriptor[] = [
-      { name: 'node', version: '20.11.0' },
-    ]
+    const specs: ToolDescriptor[] = [{ name: 'node', version: '20.11.0' }]
     const result = buildToolLabels(specs)
     expect(result).toContain('LABEL com.mheap.agent-en-place.node="20.11.0"')
   })
@@ -32,11 +34,11 @@ describe('buildToolLabels', () => {
 describe('buildDockerfile', () => {
   test('generates valid Dockerfile', () => {
     const collection: CollectResult = {
-      specs: [{ name: 'node', version: '20.11.0' }],
+      idiomaticInfos: [{ configKey: 'node', path: '', tool: 'node', version: '20.11.0' }],
       idiomaticPaths: [],
-      idiomaticInfos: [{ tool: 'node', version: '20.11.0', path: '', configKey: 'node' }],
+      specs: [{ name: 'node', version: '20.11.0' }],
     }
-    const result = buildDockerfile(false, false, true, collection, toolSpecs.codex)
+    const result = buildDockerfile(false, false, true, collection, codexSpec)
 
     expect(result).toContain('FROM debian:12-slim')
     expect(result).toContain('mise')
@@ -47,31 +49,31 @@ describe('buildDockerfile', () => {
 
   test('includes libatomic1 when needLibatomic is true', () => {
     const collection: CollectResult = {
-      specs: [],
-      idiomaticPaths: [],
       idiomaticInfos: [],
+      idiomaticPaths: [],
+      specs: [],
     }
-    const result = buildDockerfile(false, false, true, collection, toolSpecs.codex)
+    const result = buildDockerfile(false, false, true, collection, codexSpec)
     expect(result).toContain('libatomic1')
   })
 
   test('copies .tool-versions when present', () => {
     const collection: CollectResult = {
-      specs: [],
-      idiomaticPaths: [],
       idiomaticInfos: [],
+      idiomaticPaths: [],
+      specs: [],
     }
-    const result = buildDockerfile(true, false, false, collection, toolSpecs.codex)
+    const result = buildDockerfile(true, false, false, collection, codexSpec)
     expect(result).toContain('COPY .tool-versions')
   })
 
   test('copies mise.toml when present', () => {
     const collection: CollectResult = {
-      specs: [],
-      idiomaticPaths: [],
       idiomaticInfos: [],
+      idiomaticPaths: [],
+      specs: [],
     }
-    const result = buildDockerfile(false, true, false, collection, toolSpecs.codex)
+    const result = buildDockerfile(false, true, false, collection, codexSpec)
     expect(result).toContain('COPY mise.toml')
   })
 })

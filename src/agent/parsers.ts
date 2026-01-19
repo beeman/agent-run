@@ -1,7 +1,8 @@
-import type { FileSpec, ToolDescriptor, IdiomaticInfo, ToolSpec, CollectResult } from './types'
+import type { CollectResult, FileSpec, IdiomaticInfo, ToolDescriptor, ToolSpec } from './types.ts'
 
 // Mirrors Go: var idiomaticToolFiles = map[string][]string
 export const idiomaticToolFiles: Record<string, string[]> = {
+  bun: ['.bun-version'],
   crystal: ['.crystal-version'],
   elixir: ['.exenv-version'],
   go: ['.go-version'],
@@ -10,7 +11,6 @@ export const idiomaticToolFiles: Record<string, string[]> = {
   python: ['.python-version', '.python-versions'],
   ruby: ['.ruby-version', 'Gemfile'],
   yarn: ['.yvmrc'],
-  bun: ['.bun-version'],
 }
 
 // Mirrors Go: func parseToolVersions(spec *fileSpec) []toolDescriptor
@@ -30,12 +30,12 @@ export function parseToolVersions(spec: FileSpec | null): ToolDescriptor[] {
     }
 
     const fields = trimmed.split(/\s+/)
-    if (fields.length === 0) {
+    if (fields.length === 0 || !fields[0]) {
       continue
     }
 
     const name = fields[0]
-    const version = fields.length > 1 ? fields[1] : 'latest'
+    const version = fields[1] ?? 'latest'
     specs.push({ name, version })
   }
 
@@ -133,9 +133,9 @@ export async function optionalFileSpec(path: string): Promise<FileSpec | null> {
   const stat = await file.stat()
 
   return {
-    path,
     data,
     mode: stat.mode & 0o777,
+    path,
   }
 }
 
@@ -176,7 +176,7 @@ export async function parseGemfileVersion(path: string): Promise<string | null> 
 
       if (trimmed.startsWith('ruby')) {
         const fields = trimmed.split(/\s+/)
-        if (fields.length >= 2) {
+        if (fields.length >= 2 && fields[1]) {
           const version = fields[1].replace(/^["']|["']$/g, '')
           return version || null
         }
@@ -240,7 +240,7 @@ export async function parseIdiomaticFiles(): Promise<IdiomaticInfo[]> {
       }
 
       const configKey = tool
-      infos.push({ tool, version, path, configKey })
+      infos.push({ configKey, path, tool, version })
       break // Only use first matching file per tool
     }
   }
@@ -250,7 +250,7 @@ export async function parseIdiomaticFiles(): Promise<IdiomaticInfo[]> {
 
 // Mirrors Go: func sanitizeTagComponent(value string) string
 export function sanitizeTagComponent(value: string): string {
-  let result = value.toLowerCase().trim()
+  const result = value.toLowerCase().trim()
   let output = ''
   let lastWasHyphen = false
   let lastWasAt = false
@@ -329,7 +329,7 @@ export function ensureToolInfo(infos: IdiomaticInfo[], spec: ToolSpec): Idiomati
       return infos
     }
   }
-  return [...infos, { tool: spec.miseToolName, version: 'latest', path: '', configKey: spec.configKey }]
+  return [...infos, { configKey: spec.configKey, path: '', tool: spec.miseToolName, version: 'latest' }]
 }
 
 // Mirrors Go: func ensureNodeInfo(infos []idiomaticInfo) []idiomaticInfo
@@ -339,7 +339,7 @@ export function ensureNodeInfo(infos: IdiomaticInfo[]): IdiomaticInfo[] {
       return infos
     }
   }
-  return [...infos, { tool: 'node', version: 'latest', path: '', configKey: 'node' }]
+  return [...infos, { configKey: 'node', path: '', tool: 'node', version: 'latest' }]
 }
 
 // Mirrors Go: func uniquePaths(infos []idiomaticInfo) []string
@@ -376,7 +376,7 @@ export function hasNodeTool(specs: ToolDescriptor[]): boolean {
 export function collectionHasNode(
   toolFile: FileSpec | null,
   miseFile: FileSpec | null,
-  collection: CollectResult
+  collection: CollectResult,
 ): boolean {
   if (containsNodeSpec(toolFile) || containsNodeSpec(miseFile)) {
     return true
@@ -388,7 +388,7 @@ export function collectionHasNode(
 export async function collectToolSpecs(
   toolFile: FileSpec | null,
   miseFile: FileSpec | null,
-  spec: ToolSpec
+  spec: ToolSpec,
 ): Promise<CollectResult> {
   let specs = parseToolVersions(toolFile)
   specs = [...specs, ...parseMiseToml(miseFile)]
@@ -409,8 +409,8 @@ export async function collectToolSpecs(
   infos = ensureNodeInfo(infos)
 
   return {
-    specs: deduped,
-    idiomaticPaths: uniquePaths(infos),
     idiomaticInfos: infos,
+    idiomaticPaths: uniquePaths(infos),
+    specs: deduped,
   }
 }
