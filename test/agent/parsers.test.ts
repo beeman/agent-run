@@ -8,8 +8,14 @@ import {
   parseSdkmanVersion,
   parseIdiomaticFiles,
   idiomaticToolFiles,
+  dedupeToolSpecs,
+  ensureDefaultTool,
+  ensureNodeTool,
+  uniquePaths,
+  sanitizeTagComponent,
 } from '../../src/agent/parsers'
-import type { FileSpec } from '../../src/agent/types'
+import { toolSpecs } from '../../src/agent/config'
+import type { FileSpec, ToolDescriptor, IdiomaticInfo } from '../../src/agent/types'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -280,5 +286,87 @@ describe('parseIdiomaticFiles', () => {
 
     process.chdir(prevCwd)
     await rm(emptyDir, { recursive: true })
+  })
+})
+
+describe('dedupeToolSpecs', () => {
+  test('removes duplicates keeping first occurrence', () => {
+    const specs: ToolDescriptor[] = [
+      { name: 'node', version: '20.0.0' },
+      { name: 'node', version: '18.0.0' },
+      { name: 'python', version: '3.12.0' },
+    ]
+    const result = dedupeToolSpecs(specs)
+    expect(result).toEqual([
+      { name: 'node', version: '20.0.0' },
+      { name: 'python', version: '3.12.0' },
+    ])
+  })
+
+  test('defaults empty version to latest', () => {
+    const specs: ToolDescriptor[] = [{ name: 'node', version: '' }]
+    const result = dedupeToolSpecs(specs)
+    expect(result).toEqual([{ name: 'node', version: 'latest' }])
+  })
+})
+
+describe('ensureDefaultTool', () => {
+  test('adds tool if not present', () => {
+    const specs: ToolDescriptor[] = [{ name: 'node', version: '20.0.0' }]
+    const result = ensureDefaultTool(specs, toolSpecs.codex)
+    expect(result.some((s) => s.name === 'npm:@openai/codex')).toBe(true)
+  })
+
+  test('does not duplicate existing tool', () => {
+    const specs: ToolDescriptor[] = [{ name: 'npm:@openai/codex', version: '1.0.0' }]
+    const result = ensureDefaultTool(specs, toolSpecs.codex)
+    expect(result.filter((s) => s.name === 'npm:@openai/codex').length).toBe(1)
+  })
+})
+
+describe('ensureNodeTool', () => {
+  test('adds node if not present', () => {
+    const specs: ToolDescriptor[] = [{ name: 'python', version: '3.12.0' }]
+    const result = ensureNodeTool(specs)
+    expect(result.some((s) => s.name === 'node')).toBe(true)
+  })
+
+  test('does not duplicate existing node', () => {
+    const specs: ToolDescriptor[] = [{ name: 'node', version: '20.0.0' }]
+    const result = ensureNodeTool(specs)
+    expect(result.filter((s) => s.name === 'node').length).toBe(1)
+  })
+})
+
+describe('sanitizeTagComponent', () => {
+  test('lowercases and sanitizes', () => {
+    expect(sanitizeTagComponent('Node.js')).toBe('node.js')
+    expect(sanitizeTagComponent('npm:@openai/codex')).toBe('npm--openai-codex')
+    expect(sanitizeTagComponent('python_3.12')).toBe('python-3.12')
+  })
+
+  test('removes leading/trailing hyphens', () => {
+    expect(sanitizeTagComponent('-foo-')).toBe('foo')
+  })
+})
+
+describe('uniquePaths', () => {
+  test('returns unique paths only', () => {
+    const infos: IdiomaticInfo[] = [
+      { tool: 'node', version: '20', path: '.nvmrc', configKey: 'node' },
+      { tool: 'node', version: '18', path: '.nvmrc', configKey: 'node' },
+      { tool: 'python', version: '3.12', path: '.python-version', configKey: 'python' },
+    ]
+    const result = uniquePaths(infos)
+    expect(result).toEqual(['.nvmrc', '.python-version'])
+  })
+
+  test('filters out empty paths', () => {
+    const infos: IdiomaticInfo[] = [
+      { tool: 'node', version: '20', path: '', configKey: 'node' },
+      { tool: 'python', version: '3.12', path: '.python-version', configKey: 'python' },
+    ]
+    const result = uniquePaths(infos)
+    expect(result).toEqual(['.python-version'])
   })
 })

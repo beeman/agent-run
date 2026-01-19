@@ -1,4 +1,4 @@
-import type { FileSpec, ToolDescriptor, IdiomaticInfo } from './types'
+import type { FileSpec, ToolDescriptor, IdiomaticInfo, ToolSpec, CollectResult } from './types'
 
 // Mirrors Go: var idiomaticToolFiles = map[string][]string
 export const idiomaticToolFiles: Record<string, string[]> = {
@@ -246,4 +246,171 @@ export async function parseIdiomaticFiles(): Promise<IdiomaticInfo[]> {
   }
 
   return infos
+}
+
+// Mirrors Go: func sanitizeTagComponent(value string) string
+export function sanitizeTagComponent(value: string): string {
+  let result = value.toLowerCase().trim()
+  let output = ''
+  let lastWasHyphen = false
+  let lastWasAt = false
+
+  for (const char of result) {
+    if ((char >= 'a' && char <= 'z') || (char >= '0' && char <= '9')) {
+      output += char
+      lastWasHyphen = false
+      lastWasAt = false
+    } else if (char === '.') {
+      output += '.'
+      lastWasHyphen = false
+      lastWasAt = false
+    } else if (char === '@') {
+      // @ always produces a hyphen, even after :
+      if (!lastWasAt) {
+        output += '-'
+        lastWasAt = true
+        lastWasHyphen = true
+      }
+    } else if (['+', ':', '/', '_', '-'].includes(char)) {
+      if (!lastWasHyphen || lastWasAt) {
+        output += '-'
+        lastWasHyphen = true
+        lastWasAt = false
+      }
+    }
+  }
+
+  return output.replace(/^-+|-+$/g, '')
+}
+
+// Mirrors Go: func dedupeToolSpecs(specs []toolDescriptor) []toolDescriptor
+export function dedupeToolSpecs(specs: ToolDescriptor[]): ToolDescriptor[] {
+  const seen = new Set<string>()
+  const result: ToolDescriptor[] = []
+
+  for (const spec of specs) {
+    const key = sanitizeTagComponent(spec.name)
+    if (!key || seen.has(key)) {
+      continue
+    }
+
+    seen.add(key)
+    const version = spec.version || 'latest'
+    result.push({ name: spec.name, version })
+  }
+
+  return result
+}
+
+// Mirrors Go: func ensureDefaultTool(specs []toolDescriptor, toolSpec ToolSpec) []toolDescriptor
+export function ensureDefaultTool(specs: ToolDescriptor[], toolSpec: ToolSpec): ToolDescriptor[] {
+  for (const spec of specs) {
+    if (spec.name === toolSpec.miseToolName) {
+      return specs
+    }
+  }
+  return [...specs, { name: toolSpec.miseToolName, version: 'latest' }]
+}
+
+// Mirrors Go: func ensureNodeTool(specs []toolDescriptor) []toolDescriptor
+export function ensureNodeTool(specs: ToolDescriptor[]): ToolDescriptor[] {
+  for (const spec of specs) {
+    if (spec.name === 'node') {
+      return specs
+    }
+  }
+  return [...specs, { name: 'node', version: 'latest' }]
+}
+
+// Mirrors Go: func ensureToolInfo(infos []idiomaticInfo, spec ToolSpec) []idiomaticInfo
+export function ensureToolInfo(infos: IdiomaticInfo[], spec: ToolSpec): IdiomaticInfo[] {
+  for (const info of infos) {
+    if (info.configKey === spec.configKey) {
+      return infos
+    }
+  }
+  return [...infos, { tool: spec.miseToolName, version: 'latest', path: '', configKey: spec.configKey }]
+}
+
+// Mirrors Go: func ensureNodeInfo(infos []idiomaticInfo) []idiomaticInfo
+export function ensureNodeInfo(infos: IdiomaticInfo[]): IdiomaticInfo[] {
+  for (const info of infos) {
+    if (info.configKey === 'node') {
+      return infos
+    }
+  }
+  return [...infos, { tool: 'node', version: 'latest', path: '', configKey: 'node' }]
+}
+
+// Mirrors Go: func uniquePaths(infos []idiomaticInfo) []string
+export function uniquePaths(infos: IdiomaticInfo[]): string[] {
+  const seen = new Set<string>()
+  const result: string[] = []
+
+  for (const info of infos) {
+    if (!info.path || seen.has(info.path)) {
+      continue
+    }
+    seen.add(info.path)
+    result.push(info.path)
+  }
+
+  return result
+}
+
+// Mirrors Go: func containsNodeSpec(spec *fileSpec) bool
+export function containsNodeSpec(spec: FileSpec | null): boolean {
+  if (!spec) {
+    return false
+  }
+  const content = new TextDecoder().decode(spec.data)
+  return content.toLowerCase().includes('node')
+}
+
+// Mirrors Go: func hasNodeTool(specs []toolDescriptor) bool
+export function hasNodeTool(specs: ToolDescriptor[]): boolean {
+  return specs.some((spec) => spec.name === 'node')
+}
+
+// Mirrors Go: func collectionHasNode(toolFile, miseFile *fileSpec, collection collectResult) bool
+export function collectionHasNode(
+  toolFile: FileSpec | null,
+  miseFile: FileSpec | null,
+  collection: CollectResult
+): boolean {
+  if (containsNodeSpec(toolFile) || containsNodeSpec(miseFile)) {
+    return true
+  }
+  return hasNodeTool(collection.specs)
+}
+
+// Mirrors Go: func collectToolSpecs(toolFile, miseFile *fileSpec, spec ToolSpec) collectResult
+export async function collectToolSpecs(
+  toolFile: FileSpec | null,
+  miseFile: FileSpec | null,
+  spec: ToolSpec
+): Promise<CollectResult> {
+  let specs = parseToolVersions(toolFile)
+  specs = [...specs, ...parseMiseToml(miseFile)]
+
+  const idiomatic = await parseIdiomaticFiles()
+  for (const info of idiomatic) {
+    if (!info.version) {
+      continue
+    }
+    specs.push({ name: info.tool, version: info.version })
+  }
+
+  let deduped = dedupeToolSpecs(specs)
+  deduped = ensureDefaultTool(deduped, spec)
+  deduped = ensureNodeTool(deduped)
+
+  let infos = ensureToolInfo(idiomatic, spec)
+  infos = ensureNodeInfo(infos)
+
+  return {
+    specs: deduped,
+    idiomaticPaths: uniquePaths(infos),
+    idiomaticInfos: infos,
+  }
 }
